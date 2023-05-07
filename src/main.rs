@@ -1,4 +1,4 @@
-use std::{fmt::Display, fs::File, io::BufReader, process::Command, cmp::Reverse};
+use std::{cmp::Reverse, fmt::Display, fs::File, io::BufReader, process::Command};
 
 use anyhow::{bail, Context};
 use clap::Parser;
@@ -161,7 +161,7 @@ fn prep_select_audio<'a, I: Iterator<Item = &'a infojson::Format>>(
         .filter(|f| f.acodec.is_some() && f.vcodec.is_none())
         .map(AudioFormatDisplay)
         .collect();
-    
+
     options.sort_unstable_by_key(|f| Reverse(&f.0.asr));
 
     Select::new("Which audio format do you want?", options).with_formatter(&|f| {
