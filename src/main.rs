@@ -1,9 +1,9 @@
-use std::{fmt::Display, fs::File, io::BufReader, process::Command};
+use std::{fmt::Display, fs::File, io::BufReader, process::Command, cmp::Reverse};
 
 use anyhow::{bail, Context};
 use clap::Parser;
 use humansize::{SizeFormatter, BINARY};
-use inquire::{Select};
+use inquire::Select;
 use tempfile::TempDir;
 
 mod infojson;
@@ -49,7 +49,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     let info_json_entry = std::fs::read_dir(tempdir.path())
         .with_context(|| tempdir.path().display().to_string())?
-        .filter_map(|entry| {
+        .find_map(|entry| {
             if let Ok(entry) = entry {
                 if entry.file_type().ok().map_or(false, |ft| ft.is_file()) {
                     Some(entry)
@@ -60,7 +60,6 @@ fn main() -> Result<(), anyhow::Error> {
                 None
             }
         })
-        .next()
         .context("directory empty")?;
 
     let info_json =
@@ -137,7 +136,7 @@ struct AudioFormatDisplay<'a>(&'a infojson::Format);
 impl Display for AudioFormatDisplay<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(acodec) = &self.0.acodec {
-            write!(f, "{:.4}", acodec)?;
+            write!(f, "{:4.4}", acodec)?;
         }
         if let Some(asr) = self.0.asr {
             f.write_str(" ")?; // todo
@@ -158,10 +157,12 @@ impl Display for AudioFormatDisplay<'_> {
 fn prep_select_audio<'a, I: Iterator<Item = &'a infojson::Format>>(
     formats: I,
 ) -> Select<'a, AudioFormatDisplay<'a>> {
-    let options: Vec<AudioFormatDisplay> = formats
+    let mut options: Vec<AudioFormatDisplay> = formats
         .filter(|f| f.acodec.is_some() && f.vcodec.is_none())
         .map(AudioFormatDisplay)
         .collect();
+    
+    options.sort_unstable_by_key(|f| Reverse(&f.0.asr));
 
     Select::new("Which audio format do you want?", options).with_formatter(&|f| {
         let mut buf = String::new();
@@ -181,7 +182,7 @@ struct VideoFormatDisplay<'a>(&'a infojson::Format);
 impl Display for VideoFormatDisplay<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(vcodec) = &self.0.vcodec {
-            write!(f, "{:.4}", vcodec)?;
+            write!(f, "{:4.4}", vcodec)?;
         }
         if let Some(resolution) = &self.0.resolution {
             write!(f, " {}", resolution)?;
@@ -201,10 +202,12 @@ impl Display for VideoFormatDisplay<'_> {
 fn prep_select_video<'a, I: Iterator<Item = &'a infojson::Format>>(
     formats: I,
 ) -> Select<'a, VideoFormatDisplay<'a>> {
-    let options: Vec<VideoFormatDisplay> = formats
+    let mut options: Vec<VideoFormatDisplay> = formats
         .filter(|f| f.vcodec.is_some() && f.acodec.is_none())
         .map(VideoFormatDisplay)
         .collect();
+
+    options.sort_unstable_by_key(|f| Reverse(&f.0.width));
 
     Select::new("Which video format do you want?", options).with_formatter(&|f| {
         let mut buf = String::new();
