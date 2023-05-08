@@ -24,8 +24,8 @@ pub struct InfoJson {
     pub tags: Option<Vec<String>>,
     // pub playable_in_embed: Option<bool>,
     // pub live_status: Option<String>,
-    pub automatic_captions: Option<HashMap<String, Vec<AutomaticCaption>>>,
-    // pub subtitles: Subtitles,
+    pub automatic_captions: Option<HashMap<String, Vec<AutomaticCaptionInfo>>>,
+    pub subtitles: Option<HashMap<String, Vec<SubtitleInfo>>>,
     pub comment_count: Option<i64>,
     pub like_count: Option<i64>,
     pub channel: Option<String>,
@@ -70,7 +70,14 @@ pub struct InfoJson {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct AutomaticCaption {
+pub struct AutomaticCaptionInfo {
+    pub ext: String,
+    pub url: String,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubtitleInfo {
     pub ext: String,
     pub url: String,
     pub name: String,
@@ -133,10 +140,6 @@ pub struct HttpHeaders {
     #[serde(rename = "Sec-Fetch-Mode")]
     pub sec_fetch_mode: String,
 }
-
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct Subtitles {
-// }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Thumbnail {

@@ -1,11 +1,12 @@
 use std::{
-    borrow::Cow, cmp::Reverse, fmt::Display, fs::File, io::BufReader, path::Path, process::Command,
+    borrow::Cow, cmp::Reverse, fmt::Display, fs::File, io::BufReader, path::Path,
+    process::Command,
 };
 
 use anyhow::{bail, Context};
 use clap::{Parser, ValueEnum};
 use humansize::{SizeFormatter, BINARY};
-use inquire::{Confirm, Select, Text};
+use inquire::{Confirm, MultiSelect, Select, Text};
 use tempfile::TempDir;
 
 mod infojson;
@@ -202,6 +203,20 @@ fn main() -> Result<(), anyhow::Error> {
         false
     };
 
+    let embed_subtitles = if let Some(subtitles) = &info_json.subtitles {
+        if !matches!(preset, Preset::BestAudio) && !subtitles.is_empty() {
+            let subs = subtitles.iter().map(|(n, s)| (n.as_ref(), s.as_slice()));
+            match prep_multiselect_subtitle(subs).prompt() {
+                Ok(subs) => Some(subs),
+                Err(_) => return Ok(()),
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     let mut command = Command::new("yt-dlp");
 
     if args.quiet {
@@ -232,6 +247,14 @@ fn main() -> Result<(), anyhow::Error> {
         command.arg("--embed-chapters");
     } else {
         command.arg("--no-embed-chapters");
+    }
+
+    if let Some(embed_subs) = embed_subtitles {
+        command.arg("--embed-subs");
+        for sublang in embed_subs {
+            command.arg("--sub-lang");
+            command.arg(sublang.0);
+        }
     }
 
     command
@@ -267,6 +290,7 @@ fn main() -> Result<(), anyhow::Error> {
     drop(std::mem::ManuallyDrop::into_inner(tempdir));
     Ok(())
 }
+
 struct AudioFormatDisplay<'a>(&'a infojson::Format);
 
 impl Display for AudioFormatDisplay<'_> {
@@ -385,4 +409,26 @@ impl Display for PresetDisplay {
 fn prep_select_preset<'a, I: Iterator<Item = Preset>>(presets: I) -> Select<'a, PresetDisplay> {
     let presets = presets.map(PresetDisplay).collect();
     Select::new("Which preset do you want to use?", presets)
+}
+
+struct SubtitleDisplay<'a>(&'a str, &'a [infojson::SubtitleInfo]);
+
+impl Display for SubtitleDisplay<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.1
+                .get(0)
+                .map(|info| info.name.as_str())
+                .unwrap_or(self.0)
+        )
+    }
+}
+
+fn prep_multiselect_subtitle<'a, I: Iterator<Item = (&'a str, &'a [infojson::SubtitleInfo])>>(
+    subs: I,
+) -> MultiSelect<'a, SubtitleDisplay<'a>> {
+    let subs = subs.map(|(a, b)| SubtitleDisplay(a, b)).collect();
+    MultiSelect::new("Do you want to embed a subtitle?", subs)
 }
