@@ -38,10 +38,9 @@ struct Args {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Preset {
     Custom,
-    AudioOnly,
-    AudioBest,
-    VideoOnly,
-    VideoBest,
+    BestAudio,
+    BestVideo,
+    BestAudioVideo,
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -115,19 +114,17 @@ fn main() -> Result<(), anyhow::Error> {
     } else {
         let presets = if is_music {
             &[
-                Preset::AudioOnly,
+                Preset::BestAudio,
                 Preset::Custom,
-                Preset::VideoBest,
-                Preset::AudioBest,
-                Preset::VideoOnly,
+                Preset::BestAudioVideo,
+                Preset::BestVideo,
             ]
         } else {
             &[
                 Preset::Custom,
-                Preset::VideoBest,
-                Preset::AudioBest,
-                Preset::VideoOnly,
-                Preset::AudioOnly,
+                Preset::BestAudioVideo,
+                Preset::BestAudio,
+                Preset::BestVideo,
             ]
         };
 
@@ -137,28 +134,20 @@ fn main() -> Result<(), anyhow::Error> {
         }
     };
 
-    let should_select_audio = !matches!(preset, Preset::VideoOnly);
-    let should_select_video = !matches!(preset, Preset::AudioOnly);
-
-    if should_select_audio && !should_select_video {
-        match prep_select_audio(info_json.formats.iter()).prompt() {
-            Ok(AudioFormatDisplay(format)) => formats.push(&format.format_id),
-            Err(_) => return Ok(()),
+    match preset {
+        Preset::Custom => {
+            match prep_select_video(info_json.formats.iter()).prompt() {
+                Ok(VideoFormatDisplay(format)) => formats.push(format.format_id.as_ref()),
+                Err(_) => return Ok(()),
+            }
+            match prep_select_audio(info_json.formats.iter()).prompt() {
+                Ok(AudioFormatDisplay(format)) => formats.push(format.format_id.as_ref()),
+                Err(_) => return Ok(()),
+            }
         }
-    } else if should_select_audio && should_select_video {
-        match prep_select_video(info_json.formats.iter()).prompt() {
-            Ok(VideoFormatDisplay(format)) => formats.push(&format.format_id),
-            Err(_) => return Ok(()),
-        }
-        match prep_select_audio(info_json.formats.iter()).prompt() {
-            Ok(AudioFormatDisplay(format)) => formats.push(&format.format_id),
-            Err(_) => return Ok(()),
-        }
-    } else {
-        match prep_select_video(info_json.formats.iter()).prompt() {
-            Ok(VideoFormatDisplay(format)) => formats.push(&format.format_id),
-            Err(_) => return Ok(()),
-        }
+        Preset::BestAudio => formats.push("bestaudio"),
+        Preset::BestVideo => formats.push("bestvideo"),
+        Preset::BestAudioVideo => formats.push("bestaudio+bestvideo"),
     }
 
     let mut command = Command::new("yt-dlp");
@@ -168,13 +157,17 @@ fn main() -> Result<(), anyhow::Error> {
     }
 
     if args.dirs {
-        let output = if is_music {
+        let output = if matches!(preset, Preset::BestAudio) {
             dirs::audio_dir().context("cloudn't get the audio directory")?
         } else {
             dirs::video_dir().context("couldn't get the video directory")?
         };
 
         command.arg("-P").arg(output);
+    }
+
+    if matches!(preset, Preset::BestAudio) {
+        command.arg("-x");
     }
 
     command
@@ -305,10 +298,9 @@ impl Display for PresetDisplay {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             Preset::Custom => write!(f, "custom"),
-            Preset::AudioOnly => write!(f, "audio only"),
-            Preset::AudioBest => write!(f, "audio best"),
-            Preset::VideoOnly => write!(f, "video only"),
-            Preset::VideoBest => write!(f, "video best"),
+            Preset::BestAudio => write!(f, "best audio"),
+            Preset::BestVideo => write!(f, "best video"),
+            Preset::BestAudioVideo => write!(f, "best audio+video"),
         }
     }
 }
