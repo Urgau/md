@@ -38,11 +38,11 @@ struct Args {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Preset {
-    /// Select custom format
-    Custom,
-    /// Define the format to use
+    /// Manual format to use
     #[value(skip)]
     Manual,
+    /// Select a custom format
+    Custom,
     /// Use the "best" format
     Best,
     /// Best audio-only format
@@ -120,25 +120,18 @@ fn main() -> Result<(), anyhow::Error> {
     let preset = if let Some(preset) = args.preset {
         preset
     } else {
-        let presets = if is_music {
-            &[
-                Preset::BestAudio,
-                Preset::Custom,
-                Preset::Best,
-                Preset::BestVideo,
-                Preset::Manual,
-            ]
-        } else {
-            &[
-                Preset::Custom,
-                Preset::Best,
-                Preset::BestAudio,
-                Preset::BestVideo,
-                Preset::Manual,
-            ]
-        };
+        let presets = &[
+            Preset::Manual,
+            Preset::Custom,
+            Preset::Best,
+            Preset::BestAudio,
+            Preset::BestVideo,
+        ];
 
-        match prep_select_preset(presets.iter().copied()).prompt() {
+        match prep_select_preset(presets.iter().copied())
+            .with_starting_cursor(if is_music { 3 } else { 2 })
+            .prompt()
+        {
             Ok(PresetDisplay(preset)) => preset,
             Err(_) => return Ok(()),
         }
