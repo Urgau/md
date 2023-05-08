@@ -286,6 +286,11 @@ impl Display for AudioFormatDisplay<'_> {
             f.write_str(" ")?; // todo
             f.write_str(&format_note)?;
         }
+        if let Some(protocol) = Some(&self.0.protocol) {
+            f.write_str(" (")?; // todo
+            f.write_str(&protocol)?;
+            f.write_str(")")?; // todo
+        }
         Ok(())
     }
 }
@@ -330,6 +335,11 @@ impl Display for VideoFormatDisplay<'_> {
         if let Some(format_note) = &self.0.format_note {
             f.write_str(" ")?; // todo
             f.write_str(&format_note)?;
+        }
+        if let Some(protocol) = Some(&self.0.protocol) {
+            f.write_str(" (")?; // todo
+            f.write_str(&protocol)?;
+            f.write_str(")")?; // todo
         }
         Ok(())
     }
