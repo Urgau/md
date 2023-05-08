@@ -23,6 +23,10 @@ struct Args {
     #[arg(short, long, value_enum)]
     preset: Option<Preset>,
 
+    /// Use XDG-dirs (~/Music or ~/Movie)
+    #[arg(short, long)]
+    dirs: bool,
+
     /// Url of the media to download
     url: String,
 
@@ -161,6 +165,16 @@ fn main() -> Result<(), anyhow::Error> {
 
     if args.quiet {
         command.arg("--quiet");
+    }
+
+    if args.dirs {
+        let output = if is_music {
+            dirs::audio_dir().context("cloudn't get the audio directory")?
+        } else {
+            dirs::video_dir().context("couldn't get the video directory")?
+        };
+
+        command.arg("-P").arg(output);
     }
 
     command
