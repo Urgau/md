@@ -62,6 +62,10 @@ fn main() -> Result<(), anyhow::Error> {
         .arg(&args.url)
         .args(&args.extras);
 
+    if args.verbose > 0 {
+        println!(" -> executing: {:?}", command);
+    }
+
     let status = command.status()?;
 
     if !status.success() {
@@ -176,6 +180,10 @@ fn main() -> Result<(), anyhow::Error> {
             ff
         })
         .args(&args.extras);
+
+    if args.verbose > 0 {
+        println!(" -> executing: {:?}", command);
+    }
 
     let status = command.status()?;
 
