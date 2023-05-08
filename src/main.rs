@@ -38,9 +38,9 @@ struct Args {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Preset {
     Custom,
+    Best,
     BestAudio,
     BestVideo,
-    BestAudioVideo,
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -116,13 +116,13 @@ fn main() -> Result<(), anyhow::Error> {
             &[
                 Preset::BestAudio,
                 Preset::Custom,
-                Preset::BestAudioVideo,
+                Preset::Best,
                 Preset::BestVideo,
             ]
         } else {
             &[
                 Preset::Custom,
-                Preset::BestAudioVideo,
+                Preset::Best,
                 Preset::BestAudio,
                 Preset::BestVideo,
             ]
@@ -147,7 +147,7 @@ fn main() -> Result<(), anyhow::Error> {
         }
         Preset::BestAudio => formats.push("bestaudio"),
         Preset::BestVideo => formats.push("bestvideo"),
-        Preset::BestAudioVideo => formats.push("bestaudio+bestvideo"),
+        Preset::Best => formats.push("bv*+ba/b"),
     }
 
     let output_template = {
@@ -312,9 +312,9 @@ impl Display for PresetDisplay {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             Preset::Custom => write!(f, "custom"),
+            Preset::Best => write!(f, "best"),
             Preset::BestAudio => write!(f, "best audio"),
             Preset::BestVideo => write!(f, "best video"),
-            Preset::BestAudioVideo => write!(f, "best audio+video"),
         }
     }
 }
