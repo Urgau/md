@@ -3,7 +3,7 @@ use std::{cmp::Reverse, fmt::Display, fs::File, io::BufReader, process::Command}
 use anyhow::{bail, Context};
 use clap::{Parser, ValueEnum};
 use humansize::{SizeFormatter, BINARY};
-use inquire::Select;
+use inquire::{Select, Text};
 use tempfile::TempDir;
 
 mod infojson;
@@ -150,6 +150,18 @@ fn main() -> Result<(), anyhow::Error> {
         Preset::BestAudioVideo => formats.push("bestaudio+bestvideo"),
     }
 
+    let output_template = {
+        let title = match Text::new("Title?")
+            .with_initial_value(&info_json.title)
+            .prompt()
+        {
+            Ok(title) => title,
+            Err(_) => return Ok(()),
+        };
+
+        format!("{title}.%(ext)s")
+    };
+
     let mut command = Command::new("yt-dlp");
 
     if args.quiet {
@@ -174,6 +186,8 @@ fn main() -> Result<(), anyhow::Error> {
         .arg("--load-info-json")
         .arg(info_json_entry.path())
         .arg("--no-playlist")
+        .arg("-o")
+        .arg(output_template)
         .arg("-f")
         .arg({
             let mut ff = String::new();
