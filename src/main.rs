@@ -15,6 +15,10 @@ struct Args {
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
 
+    /// Make yt-dlp output quiet
+    #[arg(long)]
+    quiet: bool,
+
     /// Preset to use
     #[arg(short, long, value_enum)]
     preset: Option<Preset>,
@@ -44,6 +48,10 @@ fn main() -> Result<(), anyhow::Error> {
     );
 
     let mut command = Command::new("yt-dlp");
+
+    if args.quiet {
+        command.arg("--quiet");
+    }
 
     command
         .arg("--write-info-json")
@@ -146,6 +154,10 @@ fn main() -> Result<(), anyhow::Error> {
     }
 
     let mut command = Command::new("yt-dlp");
+
+    if args.quiet {
+        command.arg("--quiet");
+    }
 
     command
         .arg("--load-info-json")
