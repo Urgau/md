@@ -1,7 +1,5 @@
-use std::{
-    borrow::Cow, cmp::Reverse, fmt::Display, fs::File, io::BufReader, path::Path,
-    process::Command,
-};
+use std::{borrow::Cow, cmp::Reverse, fmt::Display, fs::File};
+use std::{io::BufReader, path::Path, process::Command};
 
 use anyhow::{bail, Context};
 use clap::{Parser, ValueEnum};
