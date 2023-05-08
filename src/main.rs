@@ -1,7 +1,7 @@
 use std::{cmp::Reverse, fmt::Display, fs::File, io::BufReader, process::Command};
 
 use anyhow::{bail, Context};
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use humansize::{SizeFormatter, BINARY};
 use inquire::Select;
 use tempfile::TempDir;
@@ -15,12 +15,25 @@ struct Args {
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
 
+    /// Preset to use
+    #[arg(short, long, value_enum)]
+    preset: Option<Preset>,
+
     /// Url of the media to download
     url: String,
 
     /// Extra arguments to pass to yt-dlp
     #[arg(last = true)]
     extras: Vec<String>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum Preset {
+    Custom,
+    AudioOnly,
+    AudioBest,
+    VideoOnly,
+    VideoBest,
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -81,23 +94,53 @@ fn main() -> Result<(), anyhow::Error> {
             .any(|cat| cat.eq_ignore_ascii_case("music"))
     });
 
-    if is_music {
+    let preset = if let Some(preset) = args.preset {
+        preset
+    } else {
+        let presets = if is_music {
+            &[
+                Preset::AudioOnly,
+                Preset::Custom,
+                Preset::VideoBest,
+                Preset::AudioBest,
+                Preset::VideoOnly,
+            ]
+        } else {
+            &[
+                Preset::Custom,
+                Preset::VideoBest,
+                Preset::AudioBest,
+                Preset::VideoOnly,
+                Preset::AudioOnly,
+            ]
+        };
+
+        match prep_select_preset(presets.iter().copied()).prompt() {
+            Ok(PresetDisplay(preset)) => preset,
+            Err(_) => return Ok(()),
+        }
+    };
+
+    let should_select_audio = !matches!(preset, Preset::VideoOnly);
+    let should_select_video = !matches!(preset, Preset::AudioOnly);
+
+    if should_select_audio && !should_select_video {
         match prep_select_audio(info_json.formats.iter()).prompt() {
             Ok(AudioFormatDisplay(format)) => formats.push(&format.format_id),
             Err(_) => return Ok(()),
         }
-        match prep_select_video(info_json.formats.iter()).prompt_skippable() {
-            Ok(Some(VideoFormatDisplay(format))) => formats.push(&format.format_id),
-            Ok(None) => {}
-            Err(_) => return Ok(()),
-        }
-    } else {
+    } else if should_select_audio && should_select_video {
         match prep_select_video(info_json.formats.iter()).prompt() {
             Ok(VideoFormatDisplay(format)) => formats.push(&format.format_id),
             Err(_) => return Ok(()),
         }
         match prep_select_audio(info_json.formats.iter()).prompt() {
             Ok(AudioFormatDisplay(format)) => formats.push(&format.format_id),
+            Err(_) => return Ok(()),
+        }
+    } else {
+        match prep_select_video(info_json.formats.iter()).prompt() {
+            Ok(VideoFormatDisplay(format)) => formats.push(&format.format_id),
             Err(_) => return Ok(()),
         }
     }
@@ -128,7 +171,7 @@ fn main() -> Result<(), anyhow::Error> {
         bail!("yt-dlp error: {:?}", command);
     }
 
-    drop(tempdir);
+    drop(std::mem::ManuallyDrop::into_inner(tempdir));
     Ok(())
 }
 struct AudioFormatDisplay<'a>(&'a infojson::Format);
@@ -220,4 +263,23 @@ fn prep_select_video<'a, I: Iterator<Item = &'a infojson::Format>>(
 
         buf
     })
+}
+
+struct PresetDisplay(Preset);
+
+impl Display for PresetDisplay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Preset::Custom => write!(f, "custom"),
+            Preset::AudioOnly => write!(f, "audio only"),
+            Preset::AudioBest => write!(f, "audio best"),
+            Preset::VideoOnly => write!(f, "video only"),
+            Preset::VideoBest => write!(f, "video best"),
+        }
+    }
+}
+
+fn prep_select_preset<'a, I: Iterator<Item = Preset>>(presets: I) -> Select<'a, PresetDisplay> {
+    let presets = presets.map(PresetDisplay).collect();
+    Select::new("Which preset do you want to use?", presets)
 }
