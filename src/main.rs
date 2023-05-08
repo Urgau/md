@@ -1,9 +1,11 @@
-use std::{borrow::Cow, cmp::Reverse, fmt::Display, fs::File, io::BufReader, process::Command};
+use std::{
+    borrow::Cow, cmp::Reverse, fmt::Display, fs::File, io::BufReader, path::Path, process::Command,
+};
 
 use anyhow::{bail, Context};
 use clap::{Parser, ValueEnum};
 use humansize::{SizeFormatter, BINARY};
-use inquire::{Select, Text};
+use inquire::{Confirm, Select, Text};
 use tempfile::TempDir;
 
 mod infojson;
@@ -175,6 +177,31 @@ fn main() -> Result<(), anyhow::Error> {
         format!("{title}.%(ext)s")
     };
 
+    let embed_thumbnail = {
+        match Confirm::new("Embed thumbnail?")
+            .with_default(
+                matches!(preset, Preset::BestAudio | Preset::BestVideo)
+                    && matches!(Path::new("/bin/mutagen-inspect").try_exists(), Ok(true)),
+            )
+            .prompt()
+        {
+            Ok(confirm) => confirm,
+            Err(_) => return Ok(()),
+        }
+    };
+
+    let embed_chapters = if !matches!(preset, Preset::BestAudio) {
+        match Confirm::new("Embed chapters?")
+            .with_default(matches!(preset, Preset::Best | Preset::BestVideo))
+            .prompt()
+        {
+            Ok(confirm) => confirm,
+            Err(_) => return Ok(()),
+        }
+    } else {
+        false
+    };
+
     let mut command = Command::new("yt-dlp");
 
     if args.quiet {
@@ -193,6 +220,18 @@ fn main() -> Result<(), anyhow::Error> {
 
     if matches!(preset, Preset::BestAudio) {
         command.arg("-x");
+    }
+
+    if embed_thumbnail {
+        command.arg("--embed-thumbnail");
+    } else {
+        command.arg("--no-embed-thumbnail");
+    }
+
+    if embed_chapters {
+        command.arg("--embed-chapters");
+    } else {
+        command.arg("--no-embed-chapters");
     }
 
     command
