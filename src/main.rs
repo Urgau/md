@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, fmt::Display, fs::File, io::BufReader, process::Command};
+use std::{borrow::Cow, cmp::Reverse, fmt::Display, fs::File, io::BufReader, process::Command};
 
 use anyhow::{bail, Context};
 use clap::{Parser, ValueEnum};
@@ -37,9 +37,16 @@ struct Args {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum Preset {
+    /// Select custom format
     Custom,
+    /// Define the format to use
+    #[value(skip)]
+    Manual,
+    /// Use the "best" format
     Best,
+    /// Best audio-only format
     BestAudio,
+    /// Best video-only format
     BestVideo,
 }
 
@@ -101,7 +108,7 @@ fn main() -> Result<(), anyhow::Error> {
         )
     })?;
 
-    let mut formats = Vec::new();
+    let mut formats: Vec<Cow<str>> = Vec::new();
 
     let is_music = info_json.categories.as_ref().map_or(false, |categories| {
         categories
@@ -118,6 +125,7 @@ fn main() -> Result<(), anyhow::Error> {
                 Preset::Custom,
                 Preset::Best,
                 Preset::BestVideo,
+                Preset::Manual,
             ]
         } else {
             &[
@@ -125,6 +133,7 @@ fn main() -> Result<(), anyhow::Error> {
                 Preset::Best,
                 Preset::BestAudio,
                 Preset::BestVideo,
+                Preset::Manual,
             ]
         };
 
@@ -137,17 +146,21 @@ fn main() -> Result<(), anyhow::Error> {
     match preset {
         Preset::Custom => {
             match prep_select_video(info_json.formats.iter()).prompt() {
-                Ok(VideoFormatDisplay(format)) => formats.push(format.format_id.as_ref()),
+                Ok(VideoFormatDisplay(format)) => formats.push((&format.format_id).into()),
                 Err(_) => return Ok(()),
             }
             match prep_select_audio(info_json.formats.iter()).prompt() {
-                Ok(AudioFormatDisplay(format)) => formats.push(format.format_id.as_ref()),
+                Ok(AudioFormatDisplay(format)) => formats.push((&format.format_id).into()),
                 Err(_) => return Ok(()),
             }
         }
-        Preset::BestAudio => formats.push("bestaudio"),
-        Preset::BestVideo => formats.push("bestvideo"),
-        Preset::Best => formats.push("bv*+ba/b"),
+        Preset::BestAudio => formats.push("bestaudio".into()),
+        Preset::BestVideo => formats.push("bestvideo".into()),
+        Preset::Best => formats.push("bv*+ba/b".into()),
+        Preset::Manual => match Text::new("Format?").prompt() {
+            Ok(format) => formats.push(format.into()),
+            Err(_) => return Ok(()),
+        },
     }
 
     let output_template = {
@@ -312,6 +325,7 @@ impl Display for PresetDisplay {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             Preset::Custom => write!(f, "custom"),
+            Preset::Manual => write!(f, "manual"),
             Preset::Best => write!(f, "best"),
             Preset::BestAudio => write!(f, "best audio"),
             Preset::BestVideo => write!(f, "best video"),
