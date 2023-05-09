@@ -209,7 +209,9 @@ fn main() -> Result<(), anyhow::Error> {
         None
     };
 
-    let sponsorblock_remove = if info_json.extractor_key.eq_ignore_ascii_case("youtube") && !matches!(preset, Preset::BestAudio) {
+    let sponsorblock_remove = if info_json.extractor_key.eq_ignore_ascii_case("youtube")
+        && !matches!(preset, Preset::BestAudio)
+    {
         match Confirm::new("Remove sponsor blocks?")
             .with_default(false)
             .with_help_message("warn: will reencode")
