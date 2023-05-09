@@ -93,7 +93,7 @@ pub struct Format {
     pub acodec: Option<String>,
     #[serde(deserialize_with = "lit_none_string")]
     pub vcodec: Option<String>,
-    pub url: String,
+    pub url: Option<String>,
     pub width: Option<i64>,
     pub height: Option<i64>,
     pub fps: Option<f64>,
@@ -125,7 +125,8 @@ pub struct Format {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Fragment {
-    pub url: String,
+    pub url: Option<String>,
+    pub path: Option<String>,
     pub duration: Option<f64>,
 }
 
@@ -144,7 +145,7 @@ pub struct HttpHeaders {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Thumbnail {
     pub url: String,
-    pub preference: i64,
+    pub preference: Option<i64>,
     pub id: String,
     pub height: Option<i64>,
     pub width: Option<i64>,
