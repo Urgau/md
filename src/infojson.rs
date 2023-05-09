@@ -103,7 +103,7 @@ pub struct Format {
     #[serde(deserialize_with = "lit_none_string")]
     pub resolution: Option<String>,
     pub aspect_ratio: Option<f64>,
-    pub http_headers: HttpHeaders,
+    // pub http_headers: Option<HashMap<String, String>>,
     pub audio_ext: String,
     pub video_ext: String,
     pub format: String,
@@ -128,18 +128,6 @@ pub struct Fragment {
     pub url: Option<String>,
     pub path: Option<String>,
     pub duration: Option<f64>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct HttpHeaders {
-    #[serde(rename = "User-Agent")]
-    pub user_agent: String,
-    #[serde(rename = "Accept")]
-    pub accept: String,
-    #[serde(rename = "Accept-Language")]
-    pub accept_language: String,
-    #[serde(rename = "Sec-Fetch-Mode")]
-    pub sec_fetch_mode: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
