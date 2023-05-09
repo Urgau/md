@@ -198,7 +198,8 @@ fn main() -> Result<(), anyhow::Error> {
         if !matches!(preset, Preset::BestAudio) && !subtitles.is_empty() {
             let subs = subtitles.iter().map(|(n, s)| (n.as_ref(), s.as_slice()));
             match prep_multiselect_subtitle(subs).prompt() {
-                Ok(subs) => Some(subs),
+                Ok(subs) if !subs.is_empty() => Some(subs),
+                Ok(_) => None,
                 Err(_) => return Ok(()),
             }
         } else {
