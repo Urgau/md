@@ -209,6 +209,19 @@ fn main() -> Result<(), anyhow::Error> {
         None
     };
 
+    let sponsorblock_remove = if info_json.extractor_key.eq_ignore_ascii_case("youtube") && !matches!(preset, Preset::BestAudio) {
+        match Confirm::new("Remove sponsor blocks?")
+            .with_default(false)
+            .with_help_message("warn: will reencode")
+            .prompt()
+        {
+            Ok(confirm) => confirm,
+            Err(_) => return Ok(()),
+        }
+    } else {
+        false
+    };
+
     let mut command = Command::new("yt-dlp");
 
     if args.quiet {
@@ -239,6 +252,12 @@ fn main() -> Result<(), anyhow::Error> {
         command.arg("--embed-chapters");
     } else {
         command.arg("--no-embed-chapters");
+    }
+
+    if sponsorblock_remove {
+        command.arg("--sponsorblock-remove=default");
+    } else {
+        command.arg("--no-sponsorblock");
     }
 
     if let Some(embed_subs) = embed_subtitles {
