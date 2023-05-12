@@ -73,14 +73,14 @@ pub struct InfoJson {
 pub struct AutomaticCaptionInfo {
     pub ext: String,
     pub url: String,
-    pub name: String,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubtitleInfo {
     pub ext: String,
     pub url: String,
-    pub name: String,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
