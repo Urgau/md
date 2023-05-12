@@ -196,7 +196,10 @@ fn main() -> Result<(), anyhow::Error> {
 
     let embed_subtitles = if let Some(subtitles) = &info_json.subtitles {
         if !matches!(preset, Preset::BestAudio) && !subtitles.is_empty() {
-            let subs = subtitles.iter().map(|(n, s)| (n.as_ref(), s.as_slice()));
+            let subs = subtitles.iter().flat_map(|(n, s)| match s {
+                infojson::Subtitles::Normal(s) => Some((n.as_ref(), s.as_slice())),
+                _ => None,
+            });
             match prep_multiselect_subtitle(subs).prompt() {
                 Ok(subs) if !subs.is_empty() => Some(subs),
                 Ok(_) => None,
@@ -433,8 +436,7 @@ impl Display for SubtitleDisplay<'_> {
             "{}",
             self.1
                 .get(0)
-                .map(|info| info.name.as_ref().map(|name| name.as_ref()))
-                .flatten()
+                .map(|info| info.name.as_ref())
                 .unwrap_or(self.0)
         )
     }

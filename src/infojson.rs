@@ -25,7 +25,7 @@ pub struct InfoJson {
     // pub playable_in_embed: Option<bool>,
     // pub live_status: Option<String>,
     pub automatic_captions: Option<HashMap<String, Vec<AutomaticCaptionInfo>>>,
-    pub subtitles: Option<HashMap<String, Vec<SubtitleInfo>>>,
+    pub subtitles: Option<HashMap<String, Subtitles>>,
     pub comment_count: Option<i64>,
     pub like_count: Option<i64>,
     pub channel: Option<String>,
@@ -77,10 +77,24 @@ pub struct AutomaticCaptionInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Subtitles {
+    Normal(Vec<SubtitleInfo>),
+    LiveCaption(Vec<LiveCaptionInfo>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SubtitleInfo {
     pub ext: String,
     pub url: String,
-    pub name: Option<String>,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LiveCaptionInfo {
+    pub ext: String,
+    pub url: String,
+    pub protocol: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
