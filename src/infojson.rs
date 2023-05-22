@@ -16,7 +16,7 @@ pub struct InfoJson {
     pub uploader_url: Option<String>,
     pub channel_id: Option<String>,
     pub channel_url: Option<String>,
-    pub duration: i64,
+    pub duration: f64,
     pub view_count: Option<i64>,
     pub age_limit: Option<i64>,
     pub webpage_url: String,
@@ -87,7 +87,7 @@ pub enum Subtitles {
 pub struct SubtitleInfo {
     pub ext: String,
     pub url: String,
-    pub name: String,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -436,7 +436,8 @@ impl Display for SubtitleDisplay<'_> {
             "{}",
             self.1
                 .get(0)
-                .map(|info| info.name.as_ref())
+                .map(|info| info.name.as_deref())
+                .flatten()
                 .unwrap_or(self.0)
         )
     }
