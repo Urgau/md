@@ -139,13 +139,16 @@ fn main() -> Result<(), anyhow::Error> {
 
     match preset {
         Preset::Custom => {
-            match prep_select_video(info_json.formats.iter()).prompt() {
-                Ok(VideoFormatDisplay(format)) => formats.push((&format.format_id).into()),
+            let video_format = match prep_select_video(info_json.formats.iter()).prompt() {
+                Ok(VideoFormatDisplay(format)) => format,
                 Err(_) => return Ok(()),
-            }
-            match prep_select_audio(info_json.formats.iter()).prompt() {
-                Ok(AudioFormatDisplay(format)) => formats.push((&format.format_id).into()),
-                Err(_) => return Ok(()),
+            };
+            formats.push((&video_format.format_id).into());
+            if video_format.acodec.is_none() {
+                match prep_select_audio(info_json.formats.iter()).prompt() {
+                    Ok(AudioFormatDisplay(format)) => formats.push((&format.format_id).into()),
+                    Err(_) => return Ok(()),
+                }
             }
         }
         Preset::BestAudio => formats.push("bestaudio".into()),
@@ -339,7 +342,7 @@ fn prep_select_audio<'a, I: Iterator<Item = &'a infojson::Format>>(
     formats: I,
 ) -> Select<'a, AudioFormatDisplay<'a>> {
     let mut options: Vec<AudioFormatDisplay> = formats
-        .filter(|f| f.acodec.is_some() && f.vcodec.is_none())
+        .filter(|f| f.acodec.is_some() /*&& f.vcodec.is_none()*/)
         .map(AudioFormatDisplay)
         .collect();
 
@@ -389,7 +392,7 @@ fn prep_select_video<'a, I: Iterator<Item = &'a infojson::Format>>(
     formats: I,
 ) -> Select<'a, VideoFormatDisplay<'a>> {
     let mut options: Vec<VideoFormatDisplay> = formats
-        .filter(|f| f.vcodec.is_some() && f.acodec.is_none())
+        .filter(|f| f.vcodec.is_some() /*&& f.acodec.is_none()*/)
         .map(VideoFormatDisplay)
         .collect();
 
