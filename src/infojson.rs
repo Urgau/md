@@ -1,7 +1,7 @@
 //! InfoJson models
 
 use serde::{Deserialize, Deserializer, Serialize};
-use std::{collections::HashMap, marker::PhantomData, str::FromStr};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InfoJson {
@@ -46,7 +46,7 @@ pub struct InfoJson {
     pub ext: String,
     pub protocol: String,
     pub format_note: Option<String>,
-    pub filesize_approx: i64,
+    pub filesize_approx: Option<i64>,
     pub tbr: f64,
     pub width: i64,
     pub height: i64,
@@ -54,13 +54,15 @@ pub struct InfoJson {
     pub fps: Option<f64>,
     pub dynamic_range: Option<String>,
     #[serde(deserialize_with = "lit_none_string")]
+    #[serde(default)]
     pub vcodec: Option<String>,
-    pub vbr: f64,
+    // pub vbr: f64,
     pub aspect_ratio: Option<f64>,
     #[serde(deserialize_with = "lit_none_string")]
+    #[serde(default)]
     pub acodec: Option<String>,
-    pub abr: Option<f64>,
-    pub asr: Option<i64>,
+    // pub abr: Option<f64>,
+    // pub asr: Option<i64>,
     pub audio_channels: Option<i64>,
     pub epoch: i64,
     #[serde(rename = "_type")]
@@ -104,8 +106,10 @@ pub struct Format {
     pub ext: String,
     pub protocol: String,
     #[serde(deserialize_with = "lit_none_string")]
+    #[serde(default)]
     pub acodec: Option<String>,
     #[serde(deserialize_with = "lit_none_string")]
+    #[serde(default)]
     pub vcodec: Option<String>,
     pub url: Option<String>,
     pub width: Option<i64>,
@@ -115,6 +119,7 @@ pub struct Format {
     pub columns: Option<i64>,
     pub fragments: Option<Vec<Fragment>>,
     #[serde(deserialize_with = "lit_none_string")]
+    #[serde(default)]
     pub resolution: Option<String>,
     pub aspect_ratio: Option<f64>,
     // pub http_headers: Option<HashMap<String, String>>,
@@ -161,33 +166,11 @@ pub struct Version {
     pub repository: String,
 }
 
-fn lit_none_string<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+fn lit_none_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
-    T: Deserialize<'de> + FromStr<Err = std::convert::Infallible>,
     D: Deserializer<'de>,
 {
-    struct LitNoneString<T>(PhantomData<fn() -> T>);
+    let inner = Option::<String>::deserialize(deserializer)?;
 
-    impl<'de, T> serde::de::Visitor<'de> for LitNoneString<T>
-    where
-        T: Deserialize<'de> + FromStr<Err = core::convert::Infallible>,
-    {
-        type Value = Option<T>;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("string")
-        }
-
-        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            match v {
-                "none" => Ok(None),
-                _ => Ok(Some(FromStr::from_str(v).unwrap())),
-            }
-        }
-    }
-
-    deserializer.deserialize_any(LitNoneString(PhantomData))
+    Ok(inner.and_then(|r| if r != "none" { Some(r) } else { None }))
 }
