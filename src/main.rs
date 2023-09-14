@@ -117,16 +117,43 @@ fn main() -> Result<(), anyhow::Error> {
             .any(|cat| cat.eq_ignore_ascii_case("music"))
     });
 
+    let has_some_video_only_format = info_json
+        .formats
+        .iter()
+        .any(|f| f.vcodec.is_some() && f.acodec.is_none());
+    let has_some_audio_only_format = info_json
+        .formats
+        .iter()
+        .any(|f| f.vcodec.is_none() && f.acodec.is_some());
+
     let preset = if let Some(preset) = args.preset {
         preset
     } else {
-        let presets = &[
-            Preset::Manual,
-            Preset::Custom,
-            Preset::Best,
-            Preset::BestAudio,
-            Preset::BestVideo,
-        ];
+        let presets = if has_some_audio_only_format && has_some_video_only_format {
+            &[
+                Preset::Manual,
+                Preset::Custom,
+                Preset::Best,
+                Preset::BestAudio,
+                Preset::BestVideo,
+            ] as &[_]
+        } else if has_some_audio_only_format {
+            &[
+                Preset::Manual,
+                Preset::Custom,
+                Preset::Best,
+                Preset::BestAudio,
+            ] as &[_]
+        } else if has_some_video_only_format {
+            &[
+                Preset::Manual,
+                Preset::Custom,
+                Preset::Best,
+                Preset::BestVideo,
+            ] as &[_]
+        } else {
+            &[Preset::Manual, Preset::Custom, Preset::Best] as &[_]
+        };
 
         match prep_select_preset(presets.iter().copied())
             .with_starting_cursor(if is_music { 3 } else { 2 })
